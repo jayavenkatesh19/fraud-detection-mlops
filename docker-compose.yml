@@ -1,0 +1,54 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.19.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+
+  prefect:
+    image: prefecthq/prefect:3-latest
+    ports:
+      - "4200:4200"
+    volumes:
+      - prefect-data:/root/.prefect
+    command: prefect server start --host 0.0.0.0
+
+  triton:
+    build:
+      context: ./triton
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+    volumes:
+      - triton-models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      tritonserver
+      --model-repository=/models
+      --model-control-mode=explicit
+      --exit-timeout-secs=6000
+      --http-port=8000
+      --grpc-port=8001
+      --metrics-port=8002
+    profiles:
+      - gpu
+
+volumes:
+  mlflow-data:
+  prefect-data:
+  triton-models:
