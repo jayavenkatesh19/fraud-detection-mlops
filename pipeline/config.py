@@ -17,7 +17,7 @@ TRITON_MODEL_REPO = os.getenv("TRITON_MODEL_REPO", "/models")
 
 # --- Infrastructure ---
 
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5050")
 MLFLOW_EXPERIMENT_NAME = "fraud-detection-lp"
 PREFECT_API_URL = os.getenv("PREFECT_API_URL", "http://localhost:4200/api")
 TRITON_HTTP_URL = os.getenv("TRITON_HTTP_URL", "localhost:8000")
