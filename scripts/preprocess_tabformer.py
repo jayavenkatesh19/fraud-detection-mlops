@@ -203,7 +203,7 @@ def preprocess_data(
     # * Look into spread of Amount and choose right scaler for it
 
     # Drop the "$" from the Amount field and then convert from string to float
-    data[COL_AMOUNT] = data[COL_AMOUNT].str.replace("$", "").astype("float")
+    data[COL_AMOUNT] = data[COL_AMOUNT].str.replace("$", "").str.replace(",", "").astype("float")
 
     # #### Change the 'Fraud' values to be integer where
     #   * 1 == Fraud
