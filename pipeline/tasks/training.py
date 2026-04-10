@@ -59,15 +59,29 @@ def build_training_command(
     training_image: str = TRAINING_IMAGE,
     gpu_device: str = "0",
 ) -> list[str]:
-    """Build the docker run command for the training container."""
+    """Build the docker run command for the training container.
+
+    Includes workarounds for NCCL/UCX on cloud instances without InfiniBand:
+    --privileged, NCCL_NET=Socket, and disabled IB/P2P/SHM transports.
+    """
     return [
         "docker", "run",
         "--rm",
         "--gpus", f"device={gpu_device}",
+        "--cap-add", "SYS_NICE",
+        "--shm-size=8g",
+        "--privileged",
+        "-e", "NCCL_IB_DISABLE=1",
+        "-e", "NCCL_NET=Socket",
+        "-e", "NCCL_SOCKET_IFNAME=eth0",
+        "-e", "NCCL_P2P_DISABLE=1",
+        "-e", "NCCL_SHM_DISABLE=1",
         "-v", f"{data_dir}:/data",
         "-v", f"{output_dir}:/trained_models",
         "-v", f"{config_path}:/app/config.json",
+        "--entrypoint", "bash",
         training_image,
+        "-c", "torchrun --standalone --nproc_per_node=1 /app/main.py --config /app/config.json",
     ]
 
 
