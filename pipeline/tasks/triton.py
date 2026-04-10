@@ -56,6 +56,16 @@ def stage_challenger_version(
     target_dir = os.path.join(model_repo_path, model_name, str(challenger_version))
     shutil.copytree(challenger_artifacts_path, target_dir)
 
+    # Ensure config.pbtxt has version_policy { all {} } so both versions are served
+    config_path = os.path.join(model_repo_path, model_name, "config.pbtxt")
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            config_text = f.read()
+        if "version_policy" not in config_text:
+            with open(config_path, "a") as f:
+                f.write("\nversion_policy { all {} }\n")
+            logger.info("Added version_policy { all {} } to config.pbtxt")
+
     logger.info(
         "Staged challenger as version %d (champion is version %d)",
         challenger_version, champion_version,
