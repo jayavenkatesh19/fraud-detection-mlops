@@ -42,14 +42,14 @@ This pipeline uses the **Link Prediction** variant of the fraud detection bluepr
 | `gpu` | Cloud GPU instance | preprocess, train, evaluate, deploy |
 | `default` | Your laptop | full_pipeline orchestrator only |
 
-The orchestrator on your laptop dispatches all compute to the GPU pool via `run_deployment()`. In local-only mode, both pools run on the same machine.
+In the default single-machine mode, the full pipeline runs all stages as subflows in one process. For multi-machine setups, `pipeline/deployments.py` registers each flow as a Prefect deployment that can be dispatched to remote GPU workers via work pools.
 
 ### Infrastructure
 
 | Service | Role | Port |
 |---------|------|------|
 | **Prefect** | Orchestration, scheduling, work pools, UI | 4200 |
-| **MLflow** | Experiment tracking, model registry, artifact storage | 5000 |
+| **MLflow** | Experiment tracking, model registry, artifact storage | 5050 |
 | **Triton** | GPU inference, model versioning, model control API | 8000/8001/8002 |
 
 ### Champion/Challenger via Triton Native Versioning
@@ -121,7 +121,7 @@ docker compose --profile gpu up -d
 
 Verify:
 - Prefect UI: http://localhost:4200
-- MLflow UI: http://localhost:5000
+- MLflow UI: http://localhost:5050
 
 ### 5. Pull the training container
 
@@ -163,6 +163,16 @@ prefect worker start --pool gpu
 prefect worker start --pool default
 ```
 
+### Run the full pipeline directly
+
+The simplest way to run everything end-to-end (skipping preprocessing if graph data already exists):
+
+```bash
+python -m pipeline.flows.full_pipeline
+```
+
+This calls train → evaluate → deploy as subflows, passing results between stages automatically.
+
 ### Run individual stages
 
 Each flow can be run standalone for testing or ad-hoc experiments:
@@ -174,17 +184,14 @@ python -m pipeline.flows.preprocess
 # Train with default hyperparameters
 python -m pipeline.flows.train
 
-# Train with custom hyperparameters
-python -m pipeline.flows.train \
-    --gnn-params '{"hidden_channels": 64, "num_epochs": 20}' \
-    --xgb-params '{"max_depth": 8}'
-
 # Evaluate a specific MLflow run
-python -m pipeline.flows.evaluate --challenger-run-id <mlflow_run_id>
+python -m pipeline.flows.evaluate <mlflow_run_id>
 
-# Deploy (pass eval result JSON)
-python -m pipeline.flows.deploy --eval-result '{"should_promote": true, ...}'
+# Deploy (pass eval result as JSON)
+python -m pipeline.flows.deploy '{"should_promote": true, "champion_version": 1, "challenger_version": 2, "challenger_run_id": "..."}'
 ```
+
+Flow parameters (hyperparameters, thresholds, paths) can be overridden via the Prefect UI or by editing `pipeline/config.py`.
 
 ## Project Structure
 
@@ -198,7 +205,7 @@ fraud-detection-mlops/
 │   │   ├── train.py              # Stage 2: config gen + container + MLflow
 │   │   ├── evaluate.py           # Stage 3: Triton versioning + champion/challenger
 │   │   ├── deploy.py             # Stage 4: promote or rollback
-│   │   └── full_pipeline.py      # Orchestrator: chains stages via run_deployment()
+│   │   └── full_pipeline.py      # Orchestrator: chains stages as subflows
 │   └── tasks/
 │       ├── data.py               # Input validation, output validation, data loading
 │       ├── training.py           # Config generation, Docker commands, output checks
@@ -206,7 +213,8 @@ fraud-detection-mlops/
 │       └── triton.py             # Version staging, model reload, health checks, scoring
 ├── scripts/
 │   ├── preprocess_tabformer.py   # Adapted from blueprint (parameterized, logging)
-│   └── download_data.sh          # TabFormer dataset download helper
+│   ├── download_data.sh          # TabFormer dataset download helper
+│   └── test_integration.py       # Integration test: connectivity, flows, full pipeline
 ├── tests/                        # 32 unit tests, all passing without GPU
 │   ├── conftest.py               # Synthetic data fixtures
 │   ├── test_data_tasks.py
@@ -231,7 +239,7 @@ All configuration lives in `pipeline/config.py` and can be overridden via enviro
 | `DATA_ROOT` | `/data/TabFormer` | Base directory for TabFormer data |
 | `MODEL_OUTPUT_DIR` | `/data/trained_models` | Where training artifacts are written |
 | `TRITON_MODEL_REPO` | `/models` | Triton model repository root |
-| `MLFLOW_TRACKING_URI` | `http://localhost:5000` | MLflow server URL |
+| `MLFLOW_TRACKING_URI` | `http://localhost:5050` | MLflow server URL |
 | `PREFECT_API_URL` | `http://localhost:4200/api` | Prefect server URL |
 | `TRITON_HTTP_URL` | `localhost:8000` | Triton HTTP endpoint |
 | `NGC_API_KEY` | (required) | NGC API key for training container |
