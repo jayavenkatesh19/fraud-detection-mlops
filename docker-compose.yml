@@ -4,7 +4,7 @@ services:
     ports:
       - "5050:5050"
     volumes:
-      - mlflow-data:/mlflow
+      - ${MLFLOW_DATA_DIR:-./mlflow-data}:/mlflow
     command: >
       mlflow server
       --host 0.0.0.0
@@ -17,19 +17,17 @@ services:
     ports:
       - "4200:4200"
     volumes:
-      - prefect-data:/root/.prefect
+      - ${PREFECT_DATA_DIR:-./prefect-data}:/root/.prefect
     command: prefect server start --host 0.0.0.0
 
   triton:
-    build:
-      context: ./triton
-      dockerfile: Dockerfile
+    image: ${TRITON_IMAGE:-triton-fraud:latest}
     ports:
       - "8000:8000"
       - "8001:8001"
       - "8002:8002"
     volumes:
-      - triton-models:/models
+      - ${TRITON_MODEL_REPO}:/models
     deploy:
       resources:
         reservations:
@@ -47,8 +45,3 @@ services:
       --metrics-port=8002
     profiles:
       - gpu
-
-volumes:
-  mlflow-data:
-  prefect-data:
-  triton-models:
