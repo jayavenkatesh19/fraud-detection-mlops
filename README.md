@@ -84,12 +84,10 @@ cp .env.example .env
 ### 2. Install Python dependencies
 
 ```bash
-# Create a conda environment (cuDF requires conda)
-conda create -n fraud-mlops python=3.12 -y
+# Create a conda environment with RAPIDS cuDF (requires conda)
+conda create -n fraud-mlops -c rapidsai -c conda-forge \
+    cudf=26.04 python=3.12 'cuda-version>=12.2,<=12.9' -y
 conda activate fraud-mlops
-
-# Install RAPIDS cuDF
-conda install -c rapidsai -c nvidia -c conda-forge cudf=25.08 python=3.12 -y
 
 # Install pipeline dependencies
 pip install -r requirements.txt
