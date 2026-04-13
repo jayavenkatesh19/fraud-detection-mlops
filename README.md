@@ -86,7 +86,7 @@ cp .env.example .env
 ```bash
 # Create a conda environment with RAPIDS cuDF (requires conda)
 conda create -n fraud-mlops -c rapidsai -c conda-forge \
-    cudf=26.04 python=3.12 'cuda-version>=12.2,<=13.0' -y
+    rapids=26.04 python=3.13 'cuda-version>=13.0,<=13.1' -y
 conda activate fraud-mlops
 
 # Install pipeline dependencies
