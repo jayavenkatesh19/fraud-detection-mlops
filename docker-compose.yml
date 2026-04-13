@@ -11,6 +11,8 @@ services:
       --port 5050
       --backend-store-uri sqlite:///mlflow/mlflow.db
       --default-artifact-root /mlflow/artifacts
+      --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
 
   prefect:
     image: prefecthq/prefect:3-latest
