@@ -6,15 +6,21 @@ import mlflow
 from mlflow import MlflowClient
 from prefect import task
 
-from pipeline.config import MLFLOW_EXPERIMENT_NAME, MLFLOW_TRACKING_URI, TRITON_MODEL_NAME
+from pipeline.config import (
+    MLFLOW_EXPERIMENT_NAME,
+    MLFLOW_TRACKING_URI,
+    TRITON_MODEL_NAME,
+)
 
 logger = logging.getLogger(__name__)
+
+# Configure once — all functions in this module use the same tracking server
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 
 @task(name="get-or-create-experiment")
 def get_or_create_experiment(experiment_name: str = MLFLOW_EXPERIMENT_NAME) -> str:
     """Get existing MLflow experiment or create a new one. Returns experiment ID."""
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     experiment = mlflow.get_experiment_by_name(experiment_name)
     if experiment is not None:
         return experiment.experiment_id
@@ -36,8 +42,6 @@ def log_training_run(
 
     Returns the MLflow run ID.
     """
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
     with mlflow.start_run(experiment_id=experiment_id) as run:
         # Log hyperparameters (flatten with prefix)
         for k, v in gnn_params.items():
@@ -68,8 +72,6 @@ def log_evaluation_metrics(
     champion_metrics: dict | None,
 ) -> None:
     """Log evaluation metrics to an existing MLflow run."""
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
     with mlflow.start_run(run_id=run_id):
         # Log challenger metrics
         mlflow.log_metrics({f"challenger_{k}": v for k, v in challenger_metrics.items()})
@@ -112,7 +114,6 @@ def get_champion_metrics(model_name: str = TRITON_MODEL_NAME) -> dict | None:
 @task(name="register-champion")
 def register_champion(run_id: str, model_name: str = TRITON_MODEL_NAME) -> None:
     """Register a model version and assign the 'champion' alias."""
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     client = MlflowClient(MLFLOW_TRACKING_URI)
 
     # Register model version
@@ -127,7 +128,6 @@ def register_champion(run_id: str, model_name: str = TRITON_MODEL_NAME) -> None:
 @task(name="log-promotion-decision")
 def log_promotion_decision(run_id: str, should_promote: bool, reason: str = "") -> None:
     """Log the promotion decision to the MLflow run."""
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     with mlflow.start_run(run_id=run_id):
         mlflow.set_tag("promotion_decision", "promoted" if should_promote else "rejected")
         if reason:

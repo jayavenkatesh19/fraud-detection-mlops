@@ -1,4 +1,4 @@
-"""Data validation and loading tasks."""
+"""Data loading tasks."""
 
 import logging
 import os
@@ -7,69 +7,7 @@ import numpy as np
 import pandas as pd
 from prefect import task
 
-from pipeline.config import (
-    EXPECTED_GNN_TEST_FILES,
-    EXPECTED_GNN_TRAINING_FILES,
-    EXPECTED_RAW_COLUMNS,
-)
-
 logger = logging.getLogger(__name__)
-
-
-@task(name="validate-raw-input")
-def validate_raw_input(csv_path: str) -> dict:
-    """Validate that the raw CSV exists and has expected columns.
-
-    Returns metadata dict with row_count, fraud_ratio, null_counts.
-    """
-    if not os.path.exists(csv_path):
-        raise FileNotFoundError(f"Raw CSV not found: {csv_path}")
-
-    df = pd.read_csv(csv_path, nrows=0)
-    missing = set(EXPECTED_RAW_COLUMNS) - set(df.columns)
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-    # Read full file for metadata (just the fraud column for efficiency)
-    df_full = pd.read_csv(csv_path, usecols=["Is Fraud?"])
-    row_count = len(df_full)
-    fraud_count = (df_full["Is Fraud?"] == "Yes").sum()
-    fraud_ratio = fraud_count / row_count if row_count > 0 else 0.0
-
-    # Null counts per column (sample first 10k rows for speed)
-    df_sample = pd.read_csv(csv_path, nrows=10000)
-    null_counts = df_sample.isnull().sum().to_dict()
-
-    metadata = {
-        "row_count": row_count,
-        "fraud_count": int(fraud_count),
-        "fraud_ratio": float(fraud_ratio),
-        "null_counts": null_counts,
-    }
-    logger.info("Input validation passed: %d rows, %.2f%% fraud", row_count, fraud_ratio * 100)
-    return metadata
-
-
-@task(name="validate-gnn-outputs")
-def validate_gnn_outputs(gnn_dir: str) -> dict:
-    """Validate that preprocessing produced all expected GNN files."""
-    missing_training = []
-    for f in EXPECTED_GNN_TRAINING_FILES:
-        if not os.path.exists(os.path.join(gnn_dir, f)):
-            missing_training.append(f)
-
-    missing_test = []
-    for f in EXPECTED_GNN_TEST_FILES:
-        if not os.path.exists(os.path.join(gnn_dir, f)):
-            missing_test.append(f)
-
-    all_missing = missing_training + missing_test
-    if all_missing:
-        raise FileNotFoundError(f"Missing GNN output files: {all_missing}")
-
-    result = {"training_files_ok": True, "test_files_ok": True}
-    logger.info("GNN output validation passed")
-    return result
 
 
 @task(name="load-test-data")

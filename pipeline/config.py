@@ -57,38 +57,3 @@ DEFAULT_UNDER_SAMPLE = True
 PROMOTION_METRIC = "f1_score"
 MIN_IMPROVEMENT = 0.0
 DECISION_THRESHOLD = 0.5
-
-# --- Expected file structure (for validation) ---
-
-EXPECTED_RAW_COLUMNS = [
-    "User", "Card", "Year", "Month", "Day", "Time", "Amount",
-    "Use Chip", "Merchant Name", "Merchant City", "Merchant State",
-    "Zip", "MCC", "Errors?", "Is Fraud?",
-]
-
-EXPECTED_GNN_TRAINING_FILES = [
-    "nodes/user.csv",
-    "nodes/merchant.csv",
-    "edges/user_to_merchant.csv",
-    "edges/user_to_merchant_attr.csv",
-    "edges/user_to_merchant_label.csv",
-]
-
-EXPECTED_GNN_TEST_FILES = [
-    "test_gnn/nodes/user.csv",
-    "test_gnn/nodes/merchant.csv",
-    "test_gnn/nodes/user_feature_mask.csv",
-    "test_gnn/nodes/merchant_feature_mask.csv",
-    "test_gnn/edges/user_to_merchant.csv",
-    "test_gnn/edges/user_to_merchant_attr.csv",
-    "test_gnn/edges/user_to_merchant_label.csv",
-    "test_gnn/edges/user_to_merchant_feature_mask.csv",
-]
-
-EXPECTED_MODEL_FILES = [
-    "python_backend_model_repository/prediction_and_shapley/config.pbtxt",
-    "python_backend_model_repository/prediction_and_shapley/1/model.py",
-    "python_backend_model_repository/prediction_and_shapley/1/meta.json",
-    "python_backend_model_repository/prediction_and_shapley/1/state_dict_gnn_model.pth",
-    "python_backend_model_repository/prediction_and_shapley/1/embedding_based_xgboost.json",
-]

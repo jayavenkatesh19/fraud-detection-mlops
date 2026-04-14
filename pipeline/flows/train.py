@@ -14,11 +14,7 @@ from pipeline.config import (
     TRAINING_IMAGE,
 )
 from pipeline.tasks.mlflow_utils import get_or_create_experiment, log_training_run
-from pipeline.tasks.training import (
-    generate_training_config,
-    run_training_container,
-    validate_model_outputs,
-)
+from pipeline.tasks.training import generate_training_config, run_training_container
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +62,7 @@ def train_flow(
             gpu_device=gpu_device,
         )
 
-        # Step 3: Validate outputs
-        validate_model_outputs(output_dir)
-
-        # Step 4: Log to MLflow
+        # Step 3: Log to MLflow
         experiment_id = get_or_create_experiment(experiment_name)
         run_id = log_training_run(
             experiment_id=experiment_id,

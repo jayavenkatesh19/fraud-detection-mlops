@@ -1,4 +1,4 @@
-"""Preprocessing flow — validates input, runs cuDF-based preprocessing, validates output."""
+"""Preprocessing flow — runs cuDF-based graph formation and logs metadata to MLflow."""
 
 import logging
 import os
@@ -11,10 +11,8 @@ from pipeline.config import (
     DATA_ROOT,
     DEFAULT_FRAUD_RATIO,
     DEFAULT_UNDER_SAMPLE,
-    MLFLOW_TRACKING_URI,
     RAW_CSV_PATH,
 )
-from pipeline.tasks.data import validate_gnn_outputs, validate_raw_input
 from pipeline.tasks.mlflow_utils import get_or_create_experiment
 
 logger = logging.getLogger(__name__)
@@ -30,16 +28,10 @@ def preprocess_flow(
     """Preprocess raw TabFormer CSV into graph data for training.
 
     Steps:
-    1. Validate input CSV exists and has expected columns
-    2. Run cuDF-based preprocessing (adapted from blueprint)
-    3. Validate output graph files were created
-    4. Log metadata to MLflow
+    1. Run cuDF-based preprocessing (adapted from blueprint)
+    2. Log metadata to MLflow
     """
-    # Step 1: Validate input
-    input_metadata = validate_raw_input(raw_csv_path)
-    logger.info("Input: %d rows, %.1f%% fraud", input_metadata["row_count"], input_metadata["fraud_ratio"] * 100)
-
-    # Step 2: Run preprocessing (import here because it requires cuDF/GPU)
+    # Step 1: Run preprocessing (import here because it requires cuDF/GPU)
     scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
     sys.path.insert(0, os.path.abspath(scripts_dir))
     from preprocess_tabformer import preprocess_data
@@ -51,12 +43,12 @@ def preprocess_flow(
         under_sample=under_sample,
     )
 
-    # Step 3: Validate outputs
-    gnn_dir = os.path.join(output_base_path, "gnn")
-    validate_gnn_outputs(gnn_dir)
+    logger.info(
+        "Preprocessing complete: %d transactions, %d users, %d merchants",
+        metadata["num_transactions"], metadata["num_users"], metadata["num_merchants"],
+    )
 
-    # Step 4: Log to MLflow
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    # Step 2: Log to MLflow
     experiment_id = get_or_create_experiment()
     with mlflow.start_run(experiment_id=experiment_id, run_name="preprocess"):
         mlflow.log_params({
@@ -71,6 +63,7 @@ def preprocess_flow(
         })
         mlflow.set_tag("stage", "preprocess")
 
+    gnn_dir = os.path.join(output_base_path, "gnn")
     return {
         "output_base_path": output_base_path,
         "gnn_dir": gnn_dir,

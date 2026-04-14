@@ -9,7 +9,7 @@ import numpy as np
 import tritonclient.http as httpclient
 from prefect import task
 
-from pipeline.config import TRITON_HTTP_URL, TRITON_MODEL_NAME
+from pipeline.config import TRITON_MODEL_NAME
 
 logger = logging.getLogger(__name__)
 

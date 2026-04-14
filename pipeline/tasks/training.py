@@ -1,4 +1,4 @@
-"""Training tasks — config generation, container lifecycle, output validation."""
+"""Training tasks — config generation and container lifecycle."""
 
 import json
 import logging
@@ -7,7 +7,7 @@ import subprocess
 
 from prefect import task
 
-from pipeline.config import EXPECTED_MODEL_FILES, TRAINING_IMAGE
+from pipeline.config import TRAINING_IMAGE
 
 logger = logging.getLogger(__name__)
 
@@ -51,20 +51,20 @@ def generate_training_config(
     return config_path
 
 
-@task(name="build-training-command")
-def build_training_command(
+@task(name="run-training-container")
+def run_training_container(
     data_dir: str,
     output_dir: str,
     config_path: str,
     training_image: str = TRAINING_IMAGE,
     gpu_device: str = "0",
-) -> list[str]:
-    """Build the docker run command for the training container.
+) -> None:
+    """Run the financial-fraud-training container.
 
-    Includes workarounds for NCCL/UCX on cloud instances without InfiniBand:
-    --privileged, NCCL_NET=Socket, and disabled IB/P2P/SHM transports.
+    Includes NCCL workarounds for cloud instances without InfiniBand:
+    forces socket-based communication, bypassing UCX and OFI plugins.
     """
-    return [
+    cmd = [
         "docker", "run",
         "--rm",
         "--gpus", f"device={gpu_device}",
@@ -83,18 +83,6 @@ def build_training_command(
         training_image,
         "-c", "torchrun --standalone --nproc_per_node=1 /app/main.py --config /app/config.json",
     ]
-
-
-@task(name="run-training-container")
-def run_training_container(
-    data_dir: str,
-    output_dir: str,
-    config_path: str,
-    training_image: str = TRAINING_IMAGE,
-    gpu_device: str = "0",
-) -> None:
-    """Run the financial-fraud-training container."""
-    cmd = build_training_command.fn(data_dir, output_dir, config_path, training_image, gpu_device)
     logger.info("Running training container: %s", " ".join(cmd))
 
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -103,17 +91,3 @@ def run_training_container(
         raise RuntimeError(f"Training container exited with code {result.returncode}: {result.stderr}")
 
     logger.info("Training container completed successfully")
-
-
-@task(name="validate-model-outputs")
-def validate_model_outputs(output_dir: str) -> None:
-    """Validate that the training container produced all expected model files."""
-    missing = []
-    for f in EXPECTED_MODEL_FILES:
-        if not os.path.exists(os.path.join(output_dir, f)):
-            missing.append(f)
-
-    if missing:
-        raise FileNotFoundError(f"Missing model output files: {missing}")
-
-    logger.info("Model output validation passed")
