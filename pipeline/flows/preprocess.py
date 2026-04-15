@@ -11,6 +11,7 @@ from pipeline.config import (
     DATA_ROOT,
     DEFAULT_FRAUD_RATIO,
     DEFAULT_UNDER_SAMPLE,
+    MLFLOW_PREPROCESS_EXPERIMENT_NAME,
     RAW_CSV_PATH,
 )
 from pipeline.tasks.mlflow_utils import get_or_create_experiment
@@ -49,7 +50,7 @@ def preprocess_flow(
     )
 
     # Step 2: Log to MLflow
-    experiment_id = get_or_create_experiment()
+    experiment_id = get_or_create_experiment(MLFLOW_PREPROCESS_EXPERIMENT_NAME)
     with mlflow.start_run(experiment_id=experiment_id, run_name="preprocess"):
         mlflow.log_params({
             "preprocess.fraud_ratio": fraud_ratio,
