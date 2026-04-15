@@ -11,3 +11,7 @@ dependencies:
   - mlflow
   - tritonclient
   - python-dotenv
+  - category_encoders
+  - scipy
+  - networkx
+  - matplotlib
