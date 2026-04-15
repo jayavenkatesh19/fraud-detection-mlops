@@ -44,16 +44,12 @@ def evaluate_flow(
     min_improvement: float = MIN_IMPROVEMENT,
     decision_threshold: float = DECISION_THRESHOLD,
 ) -> dict:
-    """Evaluate challenger model against champion using Triton native versioning.
+    """Compare a newly trained model against the current champion via Triton.
 
-    Steps:
-    1. Stage challenger artifacts as version N+1 in Triton model repo
-    2. Reload model in Triton to pick up new version
-    3. Load test data
-    4. Score challenger via Triton inference
-    5. Score champion via Triton inference (or get metrics from MLflow)
-    6. Compare and decide promotion
-    7. Log everything to MLflow
+    Stages the challenger as the next version in Triton's model repository,
+    scores both versions on held-out test data, and decides whether the
+    challenger should be promoted based on the configured metric and threshold.
+    Results are logged to the same MLflow run that was created during training.
     """
     # Step 1: Stage challenger as next version
     source_artifacts = os.path.join(
