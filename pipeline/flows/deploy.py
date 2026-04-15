@@ -1,4 +1,4 @@
-"""Deploy flow — promote or rollback Triton model versions."""
+"""Deploy flow with Triton model version promotion or rollback."""
 
 import logging
 
@@ -22,18 +22,12 @@ def deploy_flow(
     model_name: str = TRITON_MODEL_NAME,
     model_repo_path: str = TRITON_MODEL_REPO,
 ) -> dict:
-    """Deploy or rollback based on evaluation result.
+    """Promote or roll back a model version in Triton based on the evaluation result.
 
-    If eval says promote:
-    1. Challenger already loaded in Triton (from evaluate stage reload)
-    2. Remove old champion version artifacts
-    3. Reload model in Triton (now only challenger version remains)
-    4. Health check the new champion
-    5. Register in MLflow as champion
-
-    If eval says reject:
-    1. Remove challenger artifacts
-    2. Reload model (restores champion-only state)
+    If the challenger won, removes the old champion, health-checks the new one,
+    and registers it in MLflow's model registry with the champion alias. If the
+    champion won, cleans up the challenger artifacts and restores Triton to its
+    previous state.
     """
     should_promote = eval_result["should_promote"]
     champion_version = eval_result["champion_version"]
