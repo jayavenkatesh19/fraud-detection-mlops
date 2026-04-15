@@ -50,9 +50,6 @@ RUN conda install python=3.12
 
 # Install GPU-enabled PyTorch and XGBoost
 
-# RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-#     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-
 RUN conda install --override-channels -c nvidia -c conda-forge \
     pytorch=2.7.0=*cuda126* \
     py-xgboost=3.0.2=*cuda128* \
@@ -65,9 +62,6 @@ RUN $CONDA_DIR/bin/pip install \
     captum==0.7.0 \
     --extra-index-url https://data.pyg.org/whl/torch-2.7.0+cu126.html
 
-# RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-#     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-
 RUN conda install -y --override-channels -c rapidsai -c nvidia -c conda-forge cudf=25.04 python=3.12
 
 # Validate installation with explicit Python path
@@ -75,5 +69,3 @@ RUN python -c "import torch; print('Torch:', torch.__version__, '| CUDA:', torch
 RUN python -c "import xgboost; print('XGBoost:', xgboost.__version__)"
 RUN python -c "import captum; print('Captum:', captum.__version__)"
 RUN python -c "import torch_geometric; print('PyG:', torch_geometric.__version__)"
-
-# Entrypoint remains unchanged from Triton base image
