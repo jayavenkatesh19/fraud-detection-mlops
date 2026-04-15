@@ -30,7 +30,7 @@ def main():
     )
     full_pipeline_deploy = full_pipeline_flow.to_deployment(
         name="full-pipeline",
-        work_pool_name="default",
+        work_pool_name="gpu",
         cron="0 2 * * *",
     )
 
